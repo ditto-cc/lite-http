@@ -1,10 +1,10 @@
 
-#include "core/eventloop.h"
+#include "core/EventLoop.h"
 
 
 int main(int argc, char** argv) {
-
-    lite_http::EventLoop eventloop;
+    using namespace lite_http;
+    EventLoop eventloop;
     eventloop.run_eventloop();
     
     return 0;

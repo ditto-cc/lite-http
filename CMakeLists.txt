@@ -12,7 +12,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 file(GLOB_RECURSE header_files src/*.h)
 message("${header_files}")
 file(GLOB_RECURSE source_files src/*.cpp)
-file(GLOB_RECURSE main_files src/*_main.cpp)
+file(GLOB_RECURSE main_files src/main/*.cpp)
 list(REMOVE_ITEM source_files ${main_files})
 
 # get header directories based on location of headers
