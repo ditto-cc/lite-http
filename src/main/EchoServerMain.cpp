@@ -21,14 +21,14 @@ int main() {
             Buffer buf;
             ssize_t ret = Read(sc.get_fd(), buf.get_buf_in(), MAX_LINE);
             if (ret == 0) {
-                log_info("Connection closed.");
+                LOG_WARN("Connection closed.");
                 break;
             }
-            log_info("%ld bytes read from client.", ret);
+            LOG_INFO("%ld bytes read from client.", ret);
             buf.set_size(ret);
             printf("%s", (char*)buf.get_buf_in());
             ssize_t send_len = Send(sc.get_fd(), buf.get_buf_in(), buf.size());
-            log_info("%ld bytes sent to client.", send_len);
+            LOG_INFO("%ld bytes sent to client.", send_len);
         }
     }
     return 0;
