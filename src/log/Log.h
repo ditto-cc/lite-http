@@ -1,33 +1,27 @@
 #ifndef _LITE_LOG_H
 #define _LITE_LOG_H
 
-#include <iostream>
 #include <cstdio>
+#include <cstring>
 #include <cstdarg>
 
 #define WHITE "\033[37m"
 #define YELLOW "\033[33m"
 #define RED "\033[31m"
 #define RESET "\033[0m"
-#define LOG_INFO "INFO"
-#define LOG_WARN "WARN"
-#define LOG_FATAL "FATAL"
 
-#define LOG_INFO_PREFIX "[\033[37mINFO\033[0m]"
-#define LOG_WARN_PREFIX "[\033[33mWARN\033[0m]"
-#define LOG_FATAL_PREFIX "[\033[31mFATAL\033[0m]"
+#define INFO "INFO"
+#define WARN "WARN"
+#define FATAL "FATAL"
 
 namespace lite_http {
-    inline void log_warn(const char* msg) {
-        printf("%s %s\n", LOG_WARN_PREFIX, msg);
-    }
 
-    inline void log_fatal(const char* msg) {
-        printf("%s %s\n", LOG_FATAL_PREFIX, msg);
-        exit(errno);
-    }
+#define LOG_INFO(fmt, args...) log_debug(INFO_LEVEL, fmt,##args)
+#define LOG_WARN(fmt, args...) log_debug(WARN_LEVEL, fmt,##args)
+#define LOG_FATAL(fmt, args...) log_debug(FATAL_LEVEL, fmt,##args)
 
-    inline void log_info(const char* fmt, ...) {
+    enum LOG_LEVEL { INFO_LEVEL, WARN_LEVEL, FATAL_LEVEL };
+    inline void log_debug(const LOG_LEVEL& level, const char* fmt, ...) {
         struct timespec ts;
         timespec_get(&ts, TIME_UTC);
         char time_buf[100];
@@ -40,7 +34,18 @@ namespace lite_http {
         vsprintf(buf, fmt, args);
         va_end(args);
 
-        printf("%s%s [%s]%s: %s\n", WHITE, time_buf, LOG_INFO, RESET, buf);
+        switch (level)
+        {
+        case INFO_LEVEL:
+            printf("%s%s [%s]%s: %s\n", WHITE, time_buf, INFO, RESET, buf);
+            break;
+        case FATAL_LEVEL:
+            printf("%s%s [%s]%s: %s %s exit(%d).\n", RED, time_buf, FATAL, RESET, buf, strerror(errno), errno);
+            exit(errno);
+        default:
+            printf("%s%s [%s]%s: %s\n", YELLOW, time_buf, WARN, RESET, buf);
+            break;
+        }
     }
 }
 
