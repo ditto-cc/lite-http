@@ -23,7 +23,7 @@ namespace lite_http {
     void EventLoop::run_eventloop() {
 
         while (!m_pimpl->is_stop) {
-            log_info("RUN IN EVENTLOOP.");
+            LOG_INFO("RUN IN EVENTLOOP.");
             m_pimpl->is_stop = true;
 
             m_pimpl->dispatcher->dispatch();

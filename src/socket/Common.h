@@ -21,7 +21,10 @@ namespace lite_http {
     const int LISTENQ = 1024;
 
     using std::unique_ptr;
+    using std::shared_ptr;
+    using std::weak_ptr;
 }
+
 
 
 #endif
