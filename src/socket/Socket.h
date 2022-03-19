@@ -7,42 +7,47 @@
 namespace lite_http {
     class SocketClient {
     public:
-        SocketClient();
+        SocketClient(const char* server, int port);
         SocketClient(int fd, const struct sockaddr_in& client, socklen_t client_len);
         SocketClient(const SocketClient&);
         SocketClient(SocketClient&&);
         ~SocketClient();
 
         int get_fd() const;
-        int do_connect();
+        int Connect();
+        ssize_t Read(Buffer& buf);
+        ssize_t Send(Buffer& buf);
+
     private:
         class Impl;
-        unique_ptr<Impl> m_pimpl;
+        std::unique_ptr<Impl> m_pimpl;
     };
 
     class SocketServer {
     public:
         SocketServer();
+        explicit SocketServer(int port, bool blocking);
         ~SocketServer();
 
-        int do_bind();
-        int do_listen();
-        SocketClient do_accept();
-
-        int read(const SocketClient&, Buffer&);
+        int Bind();
+        int Listen();
+        SocketClient Accept();
+        int getListenfd();
     private:
         class Impl;
-        unique_ptr<Impl> m_pimpl;
+        std::unique_ptr<Impl> m_pimpl;
     };
 
-    int MakeSocket(int domain, int type);
+    int MakeSocket(int domain, int type, bool reuse);
     int DoBind(int fd, struct sockaddr_in* serv_addr, socklen_t serv_len);
     int DoListen(int fd, int backlog);
     int DoAccept(int fd, struct sockaddr_in* client, socklen_t* client_len);
     int DoConnect(int fd, struct sockaddr_in* client, socklen_t client_len);
 
-    ssize_t Read(int connfd, void* buffer, size_t size);
-    ssize_t Send(int connfd, void* buffer, size_t size);
+    void make_nonblocking(int fd);
+
+    ssize_t DoRead(int connfd, void* buffer, size_t size);
+    ssize_t DoSend(int connfd, void* buffer, size_t size);
 }
 
 #endif

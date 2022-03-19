@@ -1,3 +1,5 @@
+#ifndef _NOCOPYABLE_H
+#define _NOCOPYABLE_H
 
 namespace lite_http {
     /**
@@ -11,3 +13,5 @@ namespace lite_http {
         nocopyable& operator=(const nocopyable&) = delete;
     };
 }
+
+#endif

@@ -19,10 +19,6 @@ namespace lite_http {
 
     const long MAX_LINE = 4096;
     const int LISTENQ = 1024;
-
-    using std::unique_ptr;
-    using std::shared_ptr;
-    using std::weak_ptr;
 }
 
 

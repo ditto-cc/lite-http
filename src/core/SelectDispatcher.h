@@ -8,30 +8,31 @@
 #include "core/EventDispatcher.h"
 
 namespace lite_http {
-    using std::vector;
-    using std::max;
     class SelectDispatcher : public EventDispatcher {
     private:
-        fd_set readset, writeset, exset;
-        int fd_init_set, maxfd;
-        int listenfd;
-        int init_size;
-        vector<int> connfds;
+        fd_set m_readset{}, m_writeset{}, m_exset{};
+        std::vector<int> m_fds;
         int get_max_fd() const {
-            int maxfd = listenfd;
-            for (const int& fd: connfds)
-                maxfd = max(maxfd, fd);
+            int maxfd = -1;
+            for (const int& fd: m_fds)
+                if (fd > maxfd)
+                    maxfd = fd;
             return maxfd;
         }
+
     public:
-        SelectDispatcher(int init_size, const char* name = "select dispatcher") : EventDispatcher(name), init_size(init_size), connfds(init_size, -1) {}
-        ~SelectDispatcher() = default;
+        explicit SelectDispatcher(int init_size, const char* name = "select dispatcher") : EventDispatcher(name) {
+            m_fds.reserve(init_size);
+        }
+        ~SelectDispatcher() override = default;
+
+        void fd_zero();
 
         void init() override;
-        void add() override;
-        void del() override;
-        void update() override;
-        void dispatch() override;
+        void add(const Channel& channel) override;
+        void del(const Channel& channel) override;
+        void update(const Channel& channel) override;
+        void dispatch(struct timeval* timeval) override;
         void clear() override;
     };
 }

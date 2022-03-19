@@ -20,9 +20,10 @@ namespace lite_http {
         struct Node {
             T data;
             shared_ptr<Node> next;
-            Node() {}
-            Node(const T& data) : data(data) {}
-            ~Node() {}
+            Node() = default;
+            explicit Node(const T& data) : data(data) {}
+            explicit Node(const T&& data) : data(std::move(data)) {}
+            ~Node() = default;
         };
         size_t m_size, m_cap;
         shared_ptr<Node> m_head, m_tail;
@@ -30,7 +31,7 @@ namespace lite_http {
         condition_variable m_cv;
 
     public:
-        Queue() : m_size(0) { m_head = m_tail = shared_ptr<Node>(new Node()); }
+        explicit Queue(size_t cap = 100) : m_size(0), m_cap(cap) { m_head = m_tail = shared_ptr<Node>(new Node()); }
         Queue(const Queue<T>&) = delete;
         ~Queue() = default;
 
@@ -47,8 +48,13 @@ namespace lite_http {
         void pop() {
             auto lock = std::unique_lock<mutex>(m_mtx);
             m_cv.wait(lock, [&]() { return !empty(); });
-            m_head = m_head->next;
+            {
+                shared_ptr<Node> newHead = m_head->next;
+                m_head->next = nullptr;
+                m_head = newHead;
+            }
             --m_size;
+            m_cv.notify_one();
         }
 
         void push(const T& elem) {
@@ -58,6 +64,7 @@ namespace lite_http {
             m_tail->next = new_tail;
             m_tail = new_tail;
             ++m_size;
+            m_cv.notify_one();
         }
 
 

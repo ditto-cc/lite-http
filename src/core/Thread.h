@@ -1,22 +1,38 @@
 #ifndef _THREAD_H
 #define _THREAD_H
 
-#include <pthread.h>
+#include <list>
+#include <vector>
+
+#include <thread>
+#include <memory>
+#include <mutex>
+#include <condition_variable>
+#include <functional>
+
+#include "util/nocopyable.h"
 
 namespace lite_http {
-    class Thread {
-    private:
-        pthread_t th_id;
-        pthread_mutex_t mtx;
-        pthread_cond_t cond;
-    public:
-        Thread() {}
-        ~Thread() {}
-        Thread(const Thread&) = delete;
 
-        pthread_t get_thread_id() const {
-            return th_id;
-        }
+    class ThreadPool : private nocopyable {
+    public:
+        typedef std::function<void()> TaskFunc;
+        explicit ThreadPool(int thread_num);
+        ~ThreadPool();
+
+        void addTask(const TaskFunc &taskFunc);
+        void removeAllThreads();
+
+    private:
+        void threadFunc();
+
+    private:
+        int m_th_num;
+        bool m_running;
+        std::list<std::function<void()>> m_tasks;
+        std::mutex m_mtx;
+        std::condition_variable m_cv;
+        std::vector<std::shared_ptr<std::thread>> m_threads;
     };
 }
 
