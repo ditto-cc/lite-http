@@ -69,8 +69,8 @@ class AsyncLogger {
 private:
     std::queue<Log> m_logs;
     std::vector<std::thread> m_threads;
-    std::mutex m_mtx;
-    std::condition_variable m_cv;
+    static std::condition_variable m_cv;
+    static std::mutex m_mtx;
     static const char *m_log_path;
     static unsigned int m_concurrency;
 
@@ -117,7 +117,7 @@ public:
         }
         std::ostream os(sb);
         while (true) {
-            char time_buf[100];
+            char time_buf[100] = "";
             {
                 std::unique_lock<std::mutex> lock(m_mtx);
                 m_cv.wait(lock, [this]() { return !m_logs.empty(); });

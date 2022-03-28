@@ -6,9 +6,9 @@
 
 int main() {
     using namespace lite_http;
-    AsyncLogger::Config("log");
+    AsyncLogger::Config(nullptr, 1);
 
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; ; ++i) {
         AsyncLogger::LogInfo("info log", lite_http::INFO_LEVEL);
         AsyncLogger::LogWarn("warn log", lite_http::WARN_LEVEL);
         AsyncLogger::LogFatal("fatal log", lite_http::FATAL_LEVEL);
