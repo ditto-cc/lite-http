@@ -28,14 +28,13 @@ void EventLoop::run_loop() {
         AsyncLogger::LogInfo("dispatch.");
         m_dispatcher->dispatch(0, &m_activate_channels);
 
-        AsyncLogger::LogInfo("handle channels (%d)", m_activate_channels.size());
+        AsyncLogger::LogInfo("handle channels(%d).", m_activate_channels.size());
         m_event_handling = true;
         for (Channel* ch: m_activate_channels) {
             ch->handle_event();
         }
         m_event_handling = false;
 
-        AsyncLogger::LogInfo("handle callbacks.");
         handle_pending_functors();
     }
     AsyncLogger::LogInfo("EventLoop stop looping.");
@@ -50,8 +49,10 @@ void EventLoop::handle_pending_functors() {
         functors.swap(m_pending_functors);
     }
 
-    for (const Functor& func: functors)
-    func();
+    AsyncLogger::LogInfo("handle callbacks(%d).", functors.size());
+    for (const Functor& func: functors) {
+        func();
+    }
     m_calling_pending_functors = false;
 }
 

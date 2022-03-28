@@ -1,6 +1,6 @@
 
-#ifndef _INETADDREDD_H
-#define _INETADDREDD_H
+#ifndef _INETADDRESS_H
+#define _INETADDRESS_H
 
 #include "socket/Common.h"
 
@@ -12,19 +12,23 @@ public:
         bzero(&m_addr, sizeof m_addr);
         m_addr.sin_family = AF_INET;
         m_addr.sin_port = Host2Network16(port);
-        m_addr.sin_addr.s_addr = Host2Network16(INADDR_ANY);
+        m_addr.sin_addr.s_addr = Host2Network32(INADDR_ANY);
     }
 
-    explicit INetAddress(const sockaddr_in& addr) : m_addr(addr) {}
+    explicit INetAddress(const struct sockaddr_in& addr) : m_addr(addr) {}
 
     uint16_t port() const {
         return Network2Host16(m_addr.sin_port);
     }
 
-    void set_sockaddr(const sockaddr_in& addr) { m_addr = addr; }
-    const sockaddr_in* get_sockaddr() const { return &m_addr; }
+    std::string ip_port_str() const {
+        return Sockaddr2str(get_sockaddr());
+    }
+
+    void set_sockaddr(const struct sockaddr_in& addr) { m_addr = addr; }
+    const struct sockaddr_in* get_sockaddr() const { return (const struct sockaddr_in*) (&m_addr); }
 private:
-    sockaddr_in m_addr;
+    struct sockaddr_in m_addr;
 };
 
 }

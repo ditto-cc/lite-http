@@ -12,12 +12,13 @@ void TCPServer::start() {
 
 
 void TCPServer::establish_conn(int conn_fd, const INetAddress& addr) {
-    char buf[64];
-    snprintf(buf, sizeof buf, "-%s-%d", m_ip_port.c_str(), conn_fd);
+    char buf[128];
+    snprintf(buf, sizeof buf, "-%s#%d", m_ip_port.c_str(), conn_fd);
     // TODO thread pool io loop
     std::string key = m_name + buf;
     std::shared_ptr<TCPConnection> conn_sp(new TCPConnection(m_loop, conn_fd, key));
 
+    AsyncLogger::LogInfo("extablish new conn %s", key.c_str());
     m_conn_map[key] = conn_sp;
 
     conn_sp->set_conn_cb(conn_cb);

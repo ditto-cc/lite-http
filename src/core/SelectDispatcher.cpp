@@ -8,37 +8,38 @@
 
 namespace lite_http {
 
-void SelectDispatcher::fd_zero() {
+void SelectDispatcher::init() {
     FD_ZERO(&m_readset);
     FD_ZERO(&m_writeset);
     FD_ZERO(&m_exset);
 }
 
-void SelectDispatcher::set_channel(Channel* ch) {
-    if (ch->is_none()) return;
-    int fd = ch->get_fd();
-    if (ch->readable())
+void SelectDispatcher::add(Channel* channel) {
+    int fd = channel->get_fd();
+    AsyncLogger::LogInfo("channel add %d", fd);
+    m_map[fd] = channel;
+
+    if (channel->readable())
         FD_SET(fd, &m_readset);
-    if (ch->writable())
+    if (channel->writable())
         FD_SET(fd, &m_writeset);
 }
 
-void SelectDispatcher::init() {
-    fd_zero();
-    for (auto it = m_map.begin(); it != m_map.end(); ++it) {
-        set_channel(it->second);
-    }
-}
-
-void SelectDispatcher::add(Channel* channel) {
-    AsyncLogger::LogInfo("channel add %d", channel->get_fd());
-    m_map[channel->get_fd()] = channel;
-}
-
 void SelectDispatcher::update(Channel* channel) {
-    AsyncLogger::LogInfo("channel update %d", channel->get_fd());
     if (m_map.count(channel->get_fd()) == 0) {
         add(channel);
+    } else {
+        int fd = channel->get_fd();
+        AsyncLogger::LogInfo("channel update %d", fd);
+        if (channel->readable())
+            FD_SET(fd, &m_readset);
+        else
+            FD_CLR(fd, &m_readset);
+
+        if (channel->writable())
+            FD_SET(fd, &m_writeset);
+        else
+            FD_CLR(fd, &m_writeset);
     }
 }
 
@@ -54,9 +55,11 @@ void SelectDispatcher::dispatch(struct timeval* timeval, std::vector<Channel*>* 
         return;
     }
     
-    init();
+    m_readmask = m_readset;
+    m_writemask = m_writeset;
+    m_exmask = m_exset;
     AsyncLogger::LogInfo("max fd = %d, start select.", m_map.rbegin()->first);
-    if (select(m_map.rbegin()->first + 1, &m_readset, &m_writeset, &m_exset, timeval) < 0) {
+    if (select(m_map.rbegin()->first + 1, &m_readmask, &m_writemask, &m_exmask, timeval) < 0) {
         AsyncLogger::LogWarn("select error.");
         return;
     }
@@ -66,10 +69,10 @@ void SelectDispatcher::dispatch(struct timeval* timeval, std::vector<Channel*>* 
         Channel* ch = it->second;
         assert(ch->get_fd() == fd);
         int revent = EVENT_NONE;
-        if (FD_ISSET(fd, &m_readset))
+        if (FD_ISSET(fd, &m_readmask))
             revent |= EVENT_READ;
 
-        if (FD_ISSET(fd, &m_writeset))
+        if (FD_ISSET(fd, &m_writemask))
             revent |= EVENT_WRITE;
         ch->set_revent(revent);
         if (revent == EVENT_NONE) continue;
@@ -77,5 +80,8 @@ void SelectDispatcher::dispatch(struct timeval* timeval, std::vector<Channel*>* 
     }
 }
 
-void SelectDispatcher::clear() {}
+void SelectDispatcher::clear() {
+    m_map.clear();
+    init();
 }
+} // namespace

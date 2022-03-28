@@ -8,18 +8,19 @@
 #include "socket/Socket.h"
 #include "core/EventLoop.h"
 #include "tcp/TCPConnection.h"
-#include "tcp/TCPAcceptor.h"
+#include "tcp/Acceptor.h"
 #include "util/nocopyable.h"
 
 
 namespace lite_http {
 class TCPServer : private nocopyable {
 public:
-    explicit TCPServer(EventLoop* event_loop,
-                       const INetAddress& addr,
-                       std::string name,
-                       bool blocking = true)
-        : m_name(std::move(name)),
+    TCPServer(EventLoop* event_loop,
+              const INetAddress& addr,
+              const std::string& name,
+              bool blocking = true)
+        : m_name(name),
+        m_ip_port(addr.ip_port_str()),
         m_loop(event_loop), 
         m_acceptor(new Acceptor(event_loop, addr, blocking)) {
         m_acceptor->set_new_conn_cb(
@@ -32,13 +33,12 @@ public:
     void set_write_com_cb(ConnCallback cb) { write_com_cb = std::move(cb); }
     void set_message_cb(ConnCallback cb) { message_cb = std::move(cb); }
 
-    std::string ip_port() const { return m_ip_port; }
 private:
     EventLoop* m_loop;
     std::unique_ptr<Acceptor> m_acceptor;
 
     int m_thread_num {1};
-    std::string m_name, m_ip_port;
+    const std::string m_name, m_ip_port;
     std::unordered_map<std::string, std::shared_ptr<TCPConnection>> m_conn_map;
     ConnCallback conn_cb, conn_close_cb, write_com_cb, message_cb;
 

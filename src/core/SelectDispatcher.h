@@ -8,7 +8,12 @@
 namespace lite_http {
 class SelectDispatcher : public EventDispatcher {
 public:
-    explicit SelectDispatcher(EventLoop* event_loop, const char* name = "select dispatcher") : EventDispatcher(event_loop, name) {}
+    explicit SelectDispatcher(
+        EventLoop* event_loop,
+        const char* name = "select dispatcher") 
+    : EventDispatcher(event_loop, name) {
+        init();
+    }
     ~SelectDispatcher() override = default;
 
     void init() override;
@@ -19,10 +24,8 @@ public:
     void clear() override;
 
 private:
-    fd_set m_readset{}, m_writeset{}, m_exset{};
-
-    void fd_zero();
-    void set_channel(Channel* ch);
+    fd_set m_readset, m_writeset, m_exset;
+    fd_set m_readmask, m_writemask, m_exmask;
 };
 }
 
