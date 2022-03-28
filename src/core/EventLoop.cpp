@@ -1,6 +1,8 @@
 
 #include <thread>
 #include <queue>
+#include <string>
+#include <cassert>
 
 #include "core/EventLoop.h"
 #include "core/ChannelMap.h"
@@ -10,72 +12,75 @@
 
 
 namespace lite_http {
-    class EventLoop::Impl {
-    public:
-        Impl() : m_dispatcher(new SelectDispatcher(128)) {}
-        ~Impl() = default;
-    public:
-        bool is_stop {false};
-        std::unique_ptr<EventDispatcher> m_dispatcher;
-        std::unordered_map<int, std::shared_ptr<Channel>> m_channel_map;
-        std::queue<ChannelElement> m_queue;
-        std::thread m_thread;
-        std::mutex m_mtx;
 
-        void do_channel_event(int fd, Channel& channel, int type) {
-            m_queue.push(ChannelElement(channel, type));
-            // TODO is same thread
-            handle_pending_channel();
+EventLoop::EventLoop(std::string name) 
+    : m_dispatcher(new SelectDispatcher(this, name.c_str())),
+    m_thread_id(std::this_thread::get_id()) {}
+
+EventLoop::~EventLoop() = default;
+
+void EventLoop::run_loop() {
+    m_loop = true;
+    is_stop = false;
+    AsyncLogger::LogInfo("EventLoop start looping.");
+    while (!is_stop) {
+        m_activate_channels.clear();
+        AsyncLogger::LogInfo("dispatch.");
+        m_dispatcher->dispatch(0, &m_activate_channels);
+
+        AsyncLogger::LogInfo("handle channels (%d)", m_activate_channels.size());
+        m_event_handling = true;
+        for (Channel* ch: m_activate_channels) {
+            ch->handle_event();
         }
+        m_event_handling = false;
 
-        void handle_pending_channel() {
-            std::lock_guard<std::mutex> lock(m_mtx);
-            while (!m_queue.empty()) {
-                ChannelElement& ce = m_queue.front();
-                if (ce.type() == 1) {
-                    handle_pending_add(ce.get_channel());
-                } else if (ce.type() == 2) {
-                    handle_pending_delete(ce.get_channel());
-                } else if (ce.type() == 3) {
-                    handle_pending_update(ce.get_channel());
-                }
-                m_queue.pop();
-            }
-        }
-
-        void handle_pending_add(Channel& ch) {
-            int fd = ch.get_fd();
-            if (fd < 0) return;
-
-            auto find = m_channel_map.find(fd);
-            if (find == m_channel_map.end()) {
-                m_channel_map.insert({fd, std::shared_ptr<Channel>(&ch)});
-                m_dispatcher->add(ch);
-            }
-        }
-
-        void handle_pending_delete(Channel& ch) {
-            // TODO call dispatcher delete
-        }
-
-        void handle_pending_update(Channel& ch) {
-            // TODO call dispatcher update
-        }
-    };
-
-    EventLoop::EventLoop() : m_pimpl(new Impl()) {}
-
-    EventLoop::~EventLoop() = default;
-
-    void EventLoop::run_eventloop() {
-        while (!m_pimpl->is_stop) {
-            AsyncLogger::LogInfo("RUN IN EVENTLOOP.");
-
-            m_pimpl->m_dispatcher->dispatch(0);
-        }
+        AsyncLogger::LogInfo("handle callbacks.");
+        handle_pending_functors();
     }
-
-    void EventLoop::add_channel_event(int fd, Channel &channel) {
-        m_pimpl->do_channel_event(fd, channel, 1);
-    }
+    AsyncLogger::LogInfo("EventLoop stop looping.");
+    m_loop = false;
 }
+
+void EventLoop::handle_pending_functors() {
+    m_calling_pending_functors = true;
+    std::vector<Functor> functors;
+    {
+        std::lock_guard<std::mutex> guard(m_mtx);
+        functors.swap(m_pending_functors);
+    }
+
+    for (const Functor& func: functors)
+    func();
+    m_calling_pending_functors = false;
+}
+
+void EventLoop::run_in_loop(Functor func) {
+    if (is_in_thread())
+        func();
+    else
+        queue_in_loop(std::move(func));
+}
+
+void EventLoop::queue_in_loop(Functor func) {
+    {
+        std::lock_guard<std::mutex> guard(m_mtx);
+        m_pending_functors.push_back(std::move(func));
+    }
+    // TODO wakeup
+}
+
+void EventLoop::add_channel(Channel* ch) {
+    m_dispatcher->add(ch);
+}
+
+void EventLoop::update_channel(Channel* ch) {
+    m_dispatcher->update(ch);
+}
+
+void EventLoop::delete_channel(Channel* ch) {
+    m_dispatcher->del(ch);
+}
+
+
+} // namespace

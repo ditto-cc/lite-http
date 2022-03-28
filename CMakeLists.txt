@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.10)
 project(lite-http)
 
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "${CAMKE_CXX_FLAGS} -pthread")
+set(CMAKE_CXX_FLAGS "${CAMKE_CXX_FLAGS} -pthread -g")
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
-set(CMAKE_C_COMPILER "clang")
-set(CMAKE_CXX_COMPILER "clang++")
+set(CMAKE_C_COMPILER "gcc")
+set(CMAKE_CXX_COMPILER "g++")
 
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)

@@ -1,42 +1,40 @@
+#include <cstdlib>
 
-#include <cstring>
-#include <iostream>
-#include <string>
-
-#include "socket/Common.h"
-#include "socket/Socket.h"
+#include "core/EventLoop.h"
+#include "tcp/TCPServer.h"
 #include "log/Log.h"
 
-int main() {
-    using namespace lite_http;
-    AsyncLogger::Config(nullptr, 1);
-    SocketServer ss;
+using namespace lite_http;
 
-    ss.Bind();
-    ss.Listen();
-
-    char temp[65535];
-    for (;;) {
-        SocketClient sc = ss.Accept();
-        if (sc.get_fd() < 0)
-            continue;
-        for (;;) {
-            Buffer buf(10);
-            ssize_t ret = sc.Read(buf);
-            if (ret == 0) {
-                AsyncLogger::LogInfo("Connection closed.");
-                break;
-            }
-            ssize_t readable = buf.get_readable_size();
-            const char* ptr = buf.get_read_ptr();
-            for (int i = 0; i < readable; ++i)
-                temp[i] = *(ptr + i);
-            temp[readable] = 0;
-            AsyncLogger::LogInfo("%ld bytes received from client. %s", readable, temp);
-            ssize_t send_len = sc.Send(buf);
-            AsyncLogger::LogInfo("%ld bytes sent to client.", send_len);
-        }
-    }
-    return 0;
+void onMessage(const std::shared_ptr<TCPConnection>& conn_sp) {
+                Buffer& buf_in = conn_sp->get_buf_in();
+                std::string msg = buf_in.get_readable_as_str();
+                AsyncLogger::LogInfo("receive msg: %s.", msg.c_str());
+                conn_sp->send(msg.c_str(), msg.size());
 }
 
+int main(int argc, char** argv) {
+    if (argc != 2) {
+        printf("Usage: Port\n");
+        exit(0);
+    }
+
+    AsyncLogger::Config(nullptr, 1);
+
+    bool blocking = true;
+    const char* server_name = "EchoTCPServer";
+    uint16_t port = atoi(argv[1]);
+
+    EventLoop loop("main_loop");
+    INetAddress listen_addr(port);
+    TCPServer server(&loop, listen_addr, server_name, blocking);
+    server.set_conn_cb(
+            [](const std::shared_ptr<TCPConnection>& conn_sp) {
+                AsyncLogger::LogInfo("connection callback %s", conn_sp->get_conn_name());
+            });
+    server.set_message_cb(onMessage);
+    server.start();
+    loop.run_loop();
+
+    return 0;
+}

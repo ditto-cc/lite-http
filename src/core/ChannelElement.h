@@ -6,22 +6,17 @@
 #include "core/Channel.h"
 
 namespace lite_http {
-    class ChannelElement {
-    private:
-        Channel m_data;
-        int m_type;
-    public:
-        ChannelElement(Channel& ptr, int type): m_data(ptr), m_type(type) {}
-        ~ChannelElement() = default;
 
-        int type() {
-            return m_type;
-        }
+enum ChannelElementType {
+    CHANNEL_ADD, CHANNEL_UPDATE, CHANNEL_DELETE
+};
 
-        Channel& get_channel() {
-            return m_data;
-        }
-    };
+struct ChannelElement {
+public:
+    std::shared_ptr<Channel> channel;
+    int type;
+    ChannelElement(std::shared_ptr<Channel> ch, int type): channel(std::move(ch)), type(type) {}
+};
 }
 
 #endif

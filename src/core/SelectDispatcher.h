@@ -1,40 +1,29 @@
-#ifndef _SELECT_DISPATCHER
-#define _SELECT_DISPATCHER
+#ifndef _SELECT_DISPATCHER_H
+#define _SELECT_DISPATCHER_H
 
 #include <sys/select.h>
-
-#include <vector>
 
 #include "core/EventDispatcher.h"
 
 namespace lite_http {
-    class SelectDispatcher : public EventDispatcher {
-    private:
-        fd_set m_readset{}, m_writeset{}, m_exset{};
-        std::vector<int> m_fds;
-        int get_max_fd() const {
-            int maxfd = -1;
-            for (const int& fd: m_fds)
-                if (fd > maxfd)
-                    maxfd = fd;
-            return maxfd;
-        }
+class SelectDispatcher : public EventDispatcher {
+public:
+    explicit SelectDispatcher(EventLoop* event_loop, const char* name = "select dispatcher") : EventDispatcher(event_loop, name) {}
+    ~SelectDispatcher() override = default;
 
-    public:
-        explicit SelectDispatcher(int init_size, const char* name = "select dispatcher") : EventDispatcher(name) {
-            m_fds.reserve(init_size);
-        }
-        ~SelectDispatcher() override = default;
+    void init() override;
+    void add(Channel* channel) override;
+    void del(Channel* channel) override;
+    void update(Channel* channel) override;
+    void dispatch(struct timeval* timeval, std::vector<Channel*>* activate_channels) override;
+    void clear() override;
 
-        void fd_zero();
+private:
+    fd_set m_readset{}, m_writeset{}, m_exset{};
 
-        void init() override;
-        void add(const Channel& channel) override;
-        void del(const Channel& channel) override;
-        void update(const Channel& channel) override;
-        void dispatch(struct timeval* timeval) override;
-        void clear() override;
-    };
+    void fd_zero();
+    void set_channel(Channel* ch);
+};
 }
 
 #endif
