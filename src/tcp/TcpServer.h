@@ -24,7 +24,8 @@ class TcpServer : private Nocopyable {
       : loop_(event_loop),
         name_(name),
         ip_port_(std::move(addr.IpPortStr())),
-        pools_(new EventLoopThreadPool(loop_, name, thread_num)),
+        thread_num_(thread_num),
+        pools_(new EventLoopThreadPool(event_loop, name, thread_num)),
         acceptor_(new Acceptor(event_loop, addr, blocking)) {
     acceptor_->SetNewConnCb(
         std::bind(&TcpServer::EstablishConn, this, std::placeholders::_1, std::placeholders::_2));

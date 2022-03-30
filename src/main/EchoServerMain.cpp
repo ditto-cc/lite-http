@@ -20,16 +20,15 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
-  bool blocking = true;
   const char *server_name = "EchoServer";
   uint16_t port = atoi(argv[1]);
 
   EventLoop loop(std::string(server_name) + "_loop");
   INetAddress listen_addr(port);
-  TcpServer server(&loop, listen_addr, server_name, blocking);
+  TcpServer server(&loop, listen_addr, server_name);
   server.SetConnCb(
       [](const TcpConnectionPtr &conn_sp) {
-        LOG_INFO("connection callback(%s)", conn_sp->ConnName());
+        LOG_INFO("connection callback(%s) %s", conn_sp->ConnName(), conn_sp->Connected() ? "UP" : "DOWN");
       });
   server.SetMessageCb(OnMessage);
   server.SetWriteComCb(

@@ -74,7 +74,7 @@ static const char* INFO_STR = " [INFO]: ";
 static const char* WARN_STR = " [WARN]: ";
 static const char* FATAL_STR = " [FATAL]: ";
 
-void ProcessLog(std::ostream &os, const Log &log) {
+inline void ProcessLog(std::ostream &os, const Log &log) {
   char time_buf[100] = "";
   size_t rc = strftime(time_buf, sizeof time_buf, "%D %T", gmtime(&log.ts.tv_sec));
   snprintf(time_buf + rc, sizeof time_buf - rc, ".%06ld UTC", log.ts.tv_nsec / 1000);

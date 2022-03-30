@@ -74,7 +74,7 @@ void EventLoop::QueueInLoop(Functor cb) {
     pending_functors_.push_back(std::move(cb));
   }
   // TODO Wakeup
-  if (IsInThread() || calling_pending_functors_)
+  if (!IsInThread() || calling_pending_functors_)
     Wakeup();
 }
 

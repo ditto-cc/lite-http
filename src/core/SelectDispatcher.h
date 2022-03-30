@@ -25,7 +25,7 @@ class SelectDispatcher : public EventDispatcher {
 
  private:
   fd_set readset_ {}, writeset_ {}, exset_ {};
-  fd_set readmask_ {};, writemask_ {}, exmask_ {};
+  fd_set readmask_ {}, writemask_ {}, exmask_ {};
 };
 }
 

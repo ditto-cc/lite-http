@@ -6,22 +6,14 @@
 #include <vector>
 #include <functional>
 
-namespace lite_http {
+#include "core/EventLoopThread.h"
 
-class EventLoop;
-class EventLoopThread;
+namespace lite_http {
 
 class EventLoopThreadPool {
  public:
   typedef std::function<void(EventLoop *)> ThreadInitCallback;
-  EventLoopThreadPool(EventLoop *base, std::string name, int thread_num)
-      : baseloop_(base),
-        name_(std::move(name)),
-        started_(false),
-        thread_num_(thread_num) {
-    loops_.reserve(thread_num);
-    threads_.reserve(thread_num);
-  }
+  EventLoopThreadPool(EventLoop *base, std::string name, int thread_num);
   ~EventLoopThreadPool() = default;
 
   void Start();

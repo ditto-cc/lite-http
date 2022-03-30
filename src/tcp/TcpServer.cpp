@@ -8,6 +8,7 @@ namespace lite_http {
 void TcpServer::Start() {
   assert(!acceptor_->Listening());
   loop_->RunInLoop(std::bind(&Acceptor::Listen, acceptor_.get()));
+  pools_->Start();
 }
 
 void TcpServer::EstablishConn(int fd, const INetAddress &addr) {
