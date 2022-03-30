@@ -5,16 +5,15 @@
 #include <cassert>
 
 #include "core/EventLoop.h"
-#include "core/ChannelMap.h"
 #include "core/SelectDispatcher.h"
 #include "log/Log.h"
-#include "ChannelElement.h"
 
 
 namespace lite_http {
 
 EventLoop::EventLoop(std::string name) 
-    : m_dispatcher(new SelectDispatcher(this, name.c_str())),
+    : m_name(std::move(name)),
+    m_dispatcher(new SelectDispatcher(this)),
     m_thread_id(std::this_thread::get_id()) {}
 
 EventLoop::~EventLoop() = default;
@@ -22,13 +21,13 @@ EventLoop::~EventLoop() = default;
 void EventLoop::run_loop() {
     m_loop = true;
     is_stop = false;
-    AsyncLogger::LogInfo("EventLoop start looping.");
+    LOG_INFO("EventLoop(%s) start looping.", m_name.c_str());
     while (!is_stop) {
         m_activate_channels.clear();
-        AsyncLogger::LogInfo("dispatch.");
-        m_dispatcher->dispatch(0, &m_activate_channels);
+        LOG_INFO("dispatch.");
+        m_dispatcher->dispatch(0, m_activate_channels);
 
-        AsyncLogger::LogInfo("handle channels(%d).", m_activate_channels.size());
+        LOG_INFO("handle channels(%d).", m_activate_channels.size());
         m_event_handling = true;
         for (Channel* ch: m_activate_channels) {
             ch->handle_event();
@@ -37,7 +36,7 @@ void EventLoop::run_loop() {
 
         handle_pending_functors();
     }
-    AsyncLogger::LogInfo("EventLoop stop looping.");
+    LOG_INFO("EventLoop(%s) stop looping.", m_name.c_str());
     m_loop = false;
 }
 
@@ -49,7 +48,7 @@ void EventLoop::handle_pending_functors() {
         functors.swap(m_pending_functors);
     }
 
-    AsyncLogger::LogInfo("handle callbacks(%d).", functors.size());
+    LOG_INFO("handle callbacks(%d).", functors.size());
     for (const Functor& func: functors) {
         func();
     }

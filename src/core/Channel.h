@@ -30,8 +30,9 @@ public:
     void set_write_callback(const Func& callback) { m_write_callback = callback; }
     void set_read_callback(const Func& callback) { m_read_callback = callback; }
 
-    int get_fd() const { return m_fd; }
-    int get_event_type() const { return m_event; }
+    int fd() const { return m_fd; }
+    int event() const { return m_event; }
+    int revent() const { return m_revent; }
     void set_revent(int revent) { m_revent = revent; }
 
     void handle_event() {

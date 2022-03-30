@@ -11,14 +11,14 @@ void Acceptor::listen() {
 void Acceptor::handle_read() {
     INetAddress peer;
     int connfd = m_server.accept(peer);
-    AsyncLogger::LogInfo("accept %d", connfd);
+    LOG_INFO("accept %d", connfd);
     if (connfd > 0) {
         if (new_conn_cb)
             new_conn_cb(connfd, peer);
         else
             ::close(connfd);
     } else {
-        AsyncLogger::LogFatal("accept fd < 0.");
+        LOG_FATAL("accept fd < 0.");
     }
 }
 }

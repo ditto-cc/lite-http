@@ -12,40 +12,13 @@
 namespace lite_http {
 
 class Buffer {
-private:
-    std::vector<char> m_data;
-    size_t m_cap { MAX_LINE }, m_write_idx { 0 }, m_read_idx { 0 };
-
-private:
-    char* begin() { return &(*m_data.begin()); }
-    char* begin_read() { return begin() + m_read_idx; }
-    char* begin_write() { return begin() + m_write_idx; }
-
-    void make_space(size_t sz) {
-        size_t readable = readable_size();
-        std::copy(begin_read(), begin_write(), begin());
-        m_read_idx = 0;
-        m_write_idx = m_read_idx + readable;
-        if (writable_size() <= sz) {
-            m_data.resize(m_write_idx + sz);
-        }
-        assert(readable_size() == readable);
-    }
-
-    void ensure_writable(size_t sz) {
-        if (writable_size() < sz)
-            make_space(sz);
-        assert(writable_size() >= sz);
-    }
-
-    void has_written(size_t sz) {
-        assert(sz <= writable_size());
-        m_write_idx += sz;
-    }
 public:
     static const size_t INIT_BUFFER_SIZE = 65535;
-
-    explicit Buffer(size_t cap = INIT_BUFFER_SIZE): m_cap(cap), m_data(cap), m_read_idx(0), m_write_idx(0) {}
+    explicit Buffer(size_t cap = INIT_BUFFER_SIZE)
+        : m_cap(cap),
+        m_data(cap),
+        m_read_idx(0),
+        m_write_idx(0) {}
     ~Buffer() {}
 
     const char* read_ptr() const { return m_data.data() + m_read_idx; }
@@ -104,6 +77,35 @@ public:
             m_read_idx += n;
         else
             m_read_idx = m_write_idx = 0;
+    }
+private:
+    std::vector<char> m_data;
+    size_t m_cap { MAX_LINE }, m_write_idx { 0 }, m_read_idx { 0 };
+
+    char* begin() { return &(*m_data.begin()); }
+    char* begin_read() { return begin() + m_read_idx; }
+    char* begin_write() { return begin() + m_write_idx; }
+
+    void make_space(size_t sz) {
+        size_t readable = readable_size();
+        std::copy(begin_read(), begin_write(), begin());
+        m_read_idx = 0;
+        m_write_idx = m_read_idx + readable;
+        if (writable_size() <= sz) {
+            m_data.resize(m_write_idx + sz);
+        }
+        assert(readable_size() == readable);
+    }
+
+    void ensure_writable(size_t sz) {
+        if (writable_size() < sz)
+            make_space(sz);
+        assert(writable_size() >= sz);
+    }
+
+    void has_written(size_t sz) {
+        assert(sz <= writable_size());
+        m_write_idx += sz;
     }
 };
 }

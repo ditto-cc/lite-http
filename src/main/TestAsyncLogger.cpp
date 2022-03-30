@@ -9,9 +9,9 @@ int main() {
     AsyncLogger::Config(nullptr, 1);
 
     for (int i = 0; ; ++i) {
-        AsyncLogger::LogInfo("info log", lite_http::INFO_LEVEL);
-        AsyncLogger::LogWarn("warn log", lite_http::WARN_LEVEL);
-        AsyncLogger::LogFatal("fatal log", lite_http::FATAL_LEVEL);
+        LOG_INFO("info log");
+        LOG_WARN("warn log");
+        LOG_FATAL("fatal log");
     }
 
     return 0;

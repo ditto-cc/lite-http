@@ -36,14 +36,13 @@ public:
 private:
     EventLoop* m_loop;
     std::unique_ptr<Acceptor> m_acceptor;
-
     int m_thread_num {1};
     const std::string m_name, m_ip_port;
-    std::unordered_map<std::string, std::shared_ptr<TCPConnection>> m_conn_map;
+    std::unordered_map<std::string, TCPConnectionPtr> m_conn_map;
     ConnCallback conn_cb, conn_close_cb, write_com_cb, message_cb;
 
     void establish_conn(int fd, const INetAddress& addr);
-    void remove_connection(const std::shared_ptr<TCPConnection>& conn_sp);
+    void remove_connection(const TCPConnectionPtr& conn_sp);
 };
 
 }

@@ -25,9 +25,9 @@
 
 namespace lite_http {
 
-#define LOG_INFO(fmt, args...) log_debug(INFO_LEVEL, fmt,##args)
-#define LOG_WARN(fmt, args...) log_debug(WARN_LEVEL, fmt,##args)
-#define LOG_FATAL(fmt, args...) log_debug(FATAL_LEVEL, fmt,##args)
+#define LOG_INFO(fmt, args...) AsyncLogger::LogInfo(fmt,##args)
+#define LOG_WARN(fmt, args...) AsyncLogger::LogWarn(fmt,##args)
+#define LOG_FATAL(fmt, args...) AsyncLogger::LogFatal(fmt,##args)
 
 enum LOG_LEVEL {
     INFO_LEVEL, WARN_LEVEL, FATAL_LEVEL
@@ -69,16 +69,18 @@ class AsyncLogger {
 private:
     std::queue<Log> m_logs;
     std::vector<std::thread> m_threads;
-    static std::condition_variable m_cv;
-    static std::mutex m_mtx;
+    std::condition_variable m_cv;
+    std::mutex m_mtx;
+    std::once_flag m_started;
     static const char *m_log_path;
     static unsigned int m_concurrency;
 
     AsyncLogger() = default;
 
     ~AsyncLogger() {
-        for (auto &th: m_threads)
-        th.join();
+        for (auto &th: m_threads) {
+            th.join();
+        }
     }
 
 public:
@@ -87,19 +89,16 @@ public:
     const std::string FATAL_STR = " [FATAL]: ";
 
     static void LogInfo(const char *, ...);
-
     static void LogWarn(const char *, ...);
-
     static void LogFatal(const char *, ...);
+    static void Config(const char *log_path = nullptr, unsigned int concurrency = 1);
 
-    static void Config(const char *log_path, unsigned int concurrency = 1);
-
-public:
     static AsyncLogger &GetLogger() {
         static AsyncLogger logger;
         return logger;
     }
 
+private:
     void Start() {
         // start log consumer
         for (size_t sz = m_concurrency; sz > 0; --sz)
@@ -130,7 +129,8 @@ public:
                         os << buf + INFO_STR + log.msg << std::endl;
                         break;
                     case FATAL_LEVEL:
-                        os << buf + FATAL_STR + log.msg << ", errno(" << errno << ")" << std::endl;
+                        os << buf + FATAL_STR + log.msg << std::endl;
+                        exit(errno);
                         break;
                     default:
                         os << buf + WARN_STR + log.msg << std::endl;

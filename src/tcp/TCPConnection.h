@@ -11,7 +11,8 @@
 namespace lite_http {
 
 class TCPConnection;
-typedef std::function<void(const std::shared_ptr<TCPConnection>&)> ConnCallback;
+typedef std::shared_ptr<TCPConnection> TCPConnectionPtr;
+typedef std::function<void(const TCPConnectionPtr&)> ConnCallback;
 
 class TCPConnection : private nocopyable, public std::enable_shared_from_this<TCPConnection> {
 public:
@@ -19,17 +20,19 @@ public:
         EventLoop* loop,
         int connfd,
         std::string name)
-    : m_loop(loop),
+        : m_loop(loop),
         m_state(kConnecting),
         m_name(std::move(name)),
         m_socket(connfd),
         m_ch(new Channel(loop, connfd)) {
-        AsyncLogger::LogInfo("TCPConnection ctor %d", m_ch->get_fd());
+        LOG_INFO("TCPConnection ctor %d", m_ch->fd());
         m_ch->set_read_callback(std::bind(&TCPConnection::handle_read, this));
         m_ch->set_write_callback(std::bind(&TCPConnection::handle_write, this));
     }
+
     ~TCPConnection() {
-        AsyncLogger::LogInfo("TCPConnection dtor %d", m_ch->get_fd());
+        LOG_INFO("TCPConnection dtor %d", m_ch->fd());
+        assert(m_state == kDisconnected);
     }
 
     EventLoop* get_loop() { return m_loop; }
@@ -71,7 +74,6 @@ private:
     void handle_error();
 
     void send_in_loop(const char* data, size_t len);
-
 };
 }
 

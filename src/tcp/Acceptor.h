@@ -28,10 +28,7 @@ public:
 
     void listen();
     bool listening() const { return m_listening; }
-
-    void set_new_conn_cb(const NewConnCallback& cb) {
-        new_conn_cb = cb;
-    }
+    void set_new_conn_cb(const NewConnCallback& cb) { new_conn_cb = cb; }
 private:
     void handle_read();
 private:

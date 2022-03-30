@@ -20,7 +20,7 @@ public:
     void add(Channel* channel) override;
     void del(Channel* channel) override;
     void update(Channel* channel) override;
-    void dispatch(struct timeval* timeval, std::vector<Channel*>* activate_channels) override;
+    void dispatch(struct timeval* timeval, std::vector<Channel*>& activate_channels) override;
     void clear() override;
 
 private:

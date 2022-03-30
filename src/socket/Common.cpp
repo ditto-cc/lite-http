@@ -27,7 +27,7 @@ void make_nonblocking(int fd) {
 int MakeSocket(int domain, int type, bool blocking) {
     int fd = socket(domain, type, 0);
     if (fd < 0) {
-        AsyncLogger::LogWarn("create socket error");
+        LOG_WARN("create socket error");
     }
     if (!blocking) {
         make_nonblocking(fd);
@@ -38,9 +38,10 @@ int MakeSocket(int domain, int type, bool blocking) {
 int DoBind(int fd, const struct sockaddr_in* serv_addr, socklen_t serv_len) {
     int ret = bind(fd, (struct sockaddr*)serv_addr, serv_len);
     if (ret < 0) {
-        AsyncLogger::LogFatal("bind failed.");
+        LOG_FATAL("bind failed.");
+        exit(errno);
     } else {
-        AsyncLogger::LogInfo("bind success.");
+        LOG_INFO("bind success.");
     }
     return ret;
 }
@@ -48,9 +49,10 @@ int DoBind(int fd, const struct sockaddr_in* serv_addr, socklen_t serv_len) {
 int DoListen(int fd, int backlog) {
     int ret = listen(fd, backlog);
     if (ret < 0) {
-        AsyncLogger::LogFatal("listen failed.");
+        LOG_FATAL("listen failed.");
+        exit(errno);
     } else {
-        AsyncLogger::LogInfo("listen success.");
+        LOG_INFO("listen success.");
     }
     return ret;
 }
@@ -59,9 +61,9 @@ int DoAccept(int fd, struct sockaddr_in* client) {
     socklen_t len = sizeof *client;
     int connfd = accept(fd, (struct sockaddr*)client, &len);
     if (connfd < 0) {
-        AsyncLogger::LogWarn("accept failed.");
+        LOG_WARN("accept failed.");
     } else {
-        AsyncLogger::LogInfo("accept success.");
+        LOG_INFO("accept success.");
     }
     return connfd;
 }
@@ -69,7 +71,7 @@ int DoAccept(int fd, struct sockaddr_in* client) {
 int DoConnect(int fd, struct sockaddr_in* client, socklen_t client_len) {
     int ret = connect(fd, (struct sockaddr*)client, client_len);
     if (ret < 0) {
-        AsyncLogger::LogWarn("connect failed.");
+        LOG_WARN("connect failed.");
     }
     return ret;
 }
@@ -81,14 +83,14 @@ ssize_t DoRead(int fd, void* buf, size_t size) {
 ssize_t DoSend(int connfd, const char* buf, size_t size) {
     ssize_t ret;
     if ((ret = send(connfd, buf, size, 0)) < 0) {
-        AsyncLogger::LogWarn("Send failed.");
+        LOG_WARN("Send failed.");
     }
     return ret;
 }
 
 void DoShutdownWrite(int fd) {
     if (shutdown(fd, SHUT_WR) < 0) {
-        AsyncLogger::LogWarn("shutdown write failed, fd = %d", fd);
+        LOG_WARN("shutdown write failed, fd = %d", fd);
     }
 }
 
