@@ -4,64 +4,64 @@
 #include <fstream>
 
 namespace lite_http {
-const char* AsyncLogger::m_log_path = nullptr;
-unsigned int AsyncLogger::m_concurrency = 1;
-// std::mutex AsyncLogger::m_mtx;
-// std::condition_variable AsyncLogger::m_cv;
+const char *AsyncLogger::log_path_ = nullptr;
+unsigned int AsyncLogger::concurrency_ = 1;
+// std::mutex AsyncLogger::mtx_;
+// std::condition_variable AsyncLogger::cv_;
 
 void AsyncLogger::LogInfo(const char *fmt, ...) {
-    AsyncLogger& logger = GetLogger();
-    std::call_once(logger.m_started, &AsyncLogger::Start, logger);
-    struct timespec ts{};
-    timespec_get(&ts, TIME_UTC);
+  AsyncLogger &logger = GetLogger();
+  std::call_once(logger.started_, &AsyncLogger::Start, logger);
+  struct timespec ts{};
+  timespec_get(&ts, TIME_UTC);
 
-    va_list args;
-    va_start(args, fmt);
-    char buf[4096];
-    vsprintf(buf, fmt, args);
-    va_end(args);
-    std::lock_guard<std::mutex> guarad(logger.m_mtx);
-    logger.m_logs.push({ts, buf, INFO_LEVEL});
-    logger.m_cv.notify_one();
+  va_list args;
+  va_start(args, fmt);
+  char buf[4096];
+  vsprintf(buf, fmt, args);
+  va_end(args);
+  std::lock_guard<std::mutex> guarad(logger.mtx_);
+  logger.logs_.push({ts, buf, INFO_LEVEL});
+  logger.cv_.notify_one();
 }
 
 void AsyncLogger::LogWarn(const char *fmt, ...) {
-    AsyncLogger& logger = GetLogger();
-    std::call_once(logger.m_started, &AsyncLogger::Start, logger);
-    struct timespec ts{};
-    timespec_get(&ts, TIME_UTC);
+  AsyncLogger &logger = GetLogger();
+  std::call_once(logger.started_, &AsyncLogger::Start, logger);
+  struct timespec ts{};
+  timespec_get(&ts, TIME_UTC);
 
-    va_list args;
-    va_start(args, fmt);
-    char buf[4096];
-    vsprintf(buf, fmt, args);
-    va_end(args);
-    std::lock_guard<std::mutex> guarad(logger.m_mtx);
-    logger.m_logs.push({ts, buf, WARN_LEVEL});
-    logger.m_cv.notify_one();
+  va_list args;
+  va_start(args, fmt);
+  char buf[4096];
+  vsprintf(buf, fmt, args);
+  va_end(args);
+  std::lock_guard<std::mutex> guarad(logger.mtx_);
+  logger.logs_.push({ts, buf, WARN_LEVEL});
+  logger.cv_.notify_one();
 }
 
 void AsyncLogger::LogFatal(const char *fmt, ...) {
-    AsyncLogger& logger = GetLogger();
-    std::call_once(logger.m_started, &AsyncLogger::Start, logger);
-    struct timespec ts{};
-    timespec_get(&ts, TIME_UTC);
+  AsyncLogger &logger = GetLogger();
+  std::call_once(logger.started_, &AsyncLogger::Start, logger);
+  struct timespec ts{};
+  timespec_get(&ts, TIME_UTC);
 
-    va_list args;
-    va_start(args, fmt);
-    char buf[4096];
-    vsprintf(buf, fmt, args);
-    va_end(args);
+  va_list args;
+  va_start(args, fmt);
+  char buf[4096];
+  vsprintf(buf, fmt, args);
+  va_end(args);
 
-    std::lock_guard<std::mutex> guarad(logger.m_mtx);
-    logger.m_logs.push({ts, buf, FATAL_LEVEL});
-    logger.m_cv.notify_one();
+  std::lock_guard<std::mutex> guarad(logger.mtx_);
+  logger.logs_.push({ts, buf, FATAL_LEVEL});
+  logger.cv_.notify_one();
 }
 
 void AsyncLogger::Config(const char *log_path, unsigned int concurrency) {
-    m_log_path = log_path;
-    m_concurrency = concurrency;
-    AsyncLogger& logger = GetLogger();
-    std::call_once(logger.m_started, &AsyncLogger::Start, logger);
+  log_path_ = log_path;
+  concurrency_ = concurrency;
+  AsyncLogger &logger = GetLogger();
+  std::call_once(logger.started_, &AsyncLogger::Start, logger);
 }
 }

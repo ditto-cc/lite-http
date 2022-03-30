@@ -1,19 +1,18 @@
 
 #include <cassert>
 
-#include "Channel.h"
-#include "EventLoop.h"
+#include "core/Channel.h"
+#include "core/EventLoop.h"
 
 namespace lite_http {
-void Channel::update() {
-    m_add_to_loop = true;
-    m_loop->update_channel(this);
+void Channel::Update() {
+  add_to_loop_ = true;
+  loop_->UpdateChannel(this);
 }
-void Channel::remove() {
-    assert(m_event == EVENT_NONE);
-    m_loop->delete_channel(this);
-    m_add_to_loop = false;
+void Channel::Remove() {
+  assert(event_ == kEventNone);
+  loop_->DeleteChannel(this);
+  add_to_loop_ = false;
 }
-
 
 }

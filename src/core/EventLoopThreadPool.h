@@ -12,36 +12,37 @@ class EventLoop;
 class EventLoopThread;
 
 class EventLoopThreadPool {
-public:
-    typedef std::function<void(EventLoop*)> ThreadInitCallback;
-    EventLoopThreadPool(EventLoop* base, std::string name, int thread_num)
-        : m_baseloop(base),
-        m_name(std::move(name)),
-        m_thread_num(thread_num) {
-        m_loops.reserve(thread_num);
-        m_threads.reserve(thread_num);
-    }
-    ~EventLoopThreadPool() = default;
+ public:
+  typedef std::function<void(EventLoop *)> ThreadInitCallback;
+  EventLoopThreadPool(EventLoop *base, std::string name, int thread_num)
+      : baseloop_(base),
+        name_(std::move(name)),
+        started_(false),
+        thread_num_(thread_num) {
+    loops_.reserve(thread_num);
+    threads_.reserve(thread_num);
+  }
+  ~EventLoopThreadPool() = default;
 
-    void start();
-    EventLoop* next_loop();
-    EventLoop* next_loop_hash();
-    void set_thread_init_callback(ThreadInitCallback cb) { m_thread_init_cb = std::move(cb); }
-    bool started() const { return m_started; }
-    std::vector<EventLoop*> get_all_loops() const { return m_loops; }
-    const std::string& name() const { return m_name; }
+  void Start();
+  EventLoop *NextLoop();
+  EventLoop *NextLoopHash();
+  void SetThreadInitCallback(ThreadInitCallback cb) { thread_init_cb_ = std::move(cb); }
+  bool Started() const { return started_; }
+  std::vector<EventLoop *> GetAllLoops() const { return loops_; }
+  const std::string &Name() const { return name_; }
 
-private:
-    EventLoop* m_baseloop;
-    std::string m_name;
-    std::vector<std::unique_ptr<EventLoopThread>> m_threads;
-    std::vector<EventLoop*> m_loops;
-    int m_thread_num;
-    bool m_started;
-    std::vector<EventLoop*>::const_iterator m_itr;
-    ThreadInitCallback m_thread_init_cb;
+ private:
+  EventLoop *baseloop_;
+  std::string name_;
+  std::vector<std::unique_ptr<EventLoopThread>> threads_;
+  std::vector<EventLoop *> loops_;
+  int thread_num_;
+  bool started_;
+  std::vector<EventLoop *>::const_iterator iterator_;
+  ThreadInitCallback thread_init_cb_;
 };
 
 } // namespace
 
-#endif // !_EVENTLOOPTHREADPOOL_H
+#endif // _EVENTLOOPTHREADPOOL_H

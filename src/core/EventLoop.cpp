@@ -8,96 +8,94 @@
 #include "core/SelectDispatcher.h"
 #include "log/Log.h"
 
-
 namespace lite_http {
 
-EventLoop::EventLoop(std::string name) 
-    : m_name(std::move(name)),
-    m_dispatcher(new SelectDispatcher(this)),
-    m_thread_id(std::this_thread::get_id()) {}
+EventLoop::EventLoop(std::string name)
+    : name_(std::move(name)),
+      dispatcher_(new SelectDispatcher(this)),
+      thread_id_(std::this_thread::get_id()) {}
 
 EventLoop::~EventLoop() = default;
 
-void EventLoop::run_loop() {
-    m_loop = true;
-    is_stop = false;
-    LOG_INFO("EventLoop(%s) start looping.", m_name.c_str());
-    while (!is_stop) {
-        m_activate_channels.clear();
-        LOG_INFO("dispatch.");
-        m_dispatcher->dispatch(0, m_activate_channels);
+void EventLoop::RunLoop() {
+  loop_ = true;
+  is_stop_ = false;
+  LOG_INFO("EventLoop(%s) Start looping.", name_.c_str());
+  while (!is_stop_) {
+    activate_channels_.clear();
+    LOG_INFO("Dispatch.");
+    dispatcher_->Dispatch(0, activate_channels_);
 
-        LOG_INFO("handle channels(%d).", m_activate_channels.size());
-        m_event_handling = true;
-        for (Channel* ch: m_activate_channels) {
-            ch->handle_event();
-        }
-        m_event_handling = false;
-
-        handle_pending_functors();
+    LOG_INFO("handle channels(%d).", activate_channels_.size());
+    event_handling_ = true;
+    for (Channel *ch : activate_channels_) {
+      ch->HandleEvent();
     }
-    LOG_INFO("EventLoop(%s) stop looping.", m_name.c_str());
-    m_loop = false;
+    event_handling_ = false;
+
+    HandlePendingFunctors();
+  }
+  LOG_INFO("EventLoop(%s) stop looping.", name_.c_str());
+  loop_ = false;
 }
 
-void EventLoop::quit() {
-    is_stop = true;
-    // TODO wakeup if not in thread
-    if (!is_in_thread())
-        wakeup();
+void EventLoop::Quit() {
+  is_stop_ = true;
+  // TODO Wakeup if not in thread
+  if (!IsInThread())
+    Wakeup();
 }
 
-void EventLoop::handle_pending_functors() {
-    m_calling_pending_functors = true;
-    std::vector<Functor> functors;
-    {
-        std::lock_guard<std::mutex> guard(m_mtx);
-        functors.swap(m_pending_functors);
-    }
+void EventLoop::HandlePendingFunctors() {
+  calling_pending_functors_ = true;
+  std::vector<Functor> functors;
+  {
+    std::lock_guard<std::mutex> guard(mtx_);
+    functors.swap(pending_functors_);
+  }
 
-    LOG_INFO("handle callbacks(%d).", functors.size());
-    for (const Functor& func: functors) {
-        func();
-    }
-    m_calling_pending_functors = false;
+  LOG_INFO("handle callbacks(%d).", functors.size());
+  for (const Functor &func : functors) {
+    func();
+  }
+  calling_pending_functors_ = false;
 }
 
-void EventLoop::run_in_loop(Functor func) {
-    if (is_in_thread())
-        func();
-    else
-        queue_in_loop(std::move(func));
+void EventLoop::RunInLoop(Functor cb) {
+  if (IsInThread())
+    cb();
+  else
+    QueueInLoop(std::move(cb));
 }
 
-void EventLoop::queue_in_loop(Functor func) {
-    {
-        std::lock_guard<std::mutex> guard(m_mtx);
-        m_pending_functors.push_back(std::move(func));
-    }
-    // TODO wakeup
-    if (is_in_thread() || m_calling_pending_functors)
-        wakeup();
+void EventLoop::QueueInLoop(Functor cb) {
+  {
+    std::lock_guard<std::mutex> guard(mtx_);
+    pending_functors_.push_back(std::move(cb));
+  }
+  // TODO Wakeup
+  if (IsInThread() || calling_pending_functors_)
+    Wakeup();
 }
 
-void EventLoop::wakeup() {
-    // TODO
+void EventLoop::Wakeup() {
+  // TODO
 }
 
-void EventLoop::handle_read() {
-    // TODO
+void EventLoop::HandleRead() {
+  // TODO
 }
 
-void EventLoop::add_channel(Channel* ch) {
-    m_dispatcher->add(ch);
+void EventLoop::AddChannel(Channel *ch) {
+  dispatcher_->Add(ch);
 }
 
-void EventLoop::update_channel(Channel* ch) {
-    m_dispatcher->update(ch);
+void EventLoop::UpdateChannel(Channel *ch) {
+  dispatcher_->Update(ch);
 }
 
-void EventLoop::delete_channel(Channel* ch) {
-    m_dispatcher->del(ch);
+void EventLoop::DeleteChannel(Channel *ch) {
+  dispatcher_->Del(ch);
 }
-
 
 } // namespace

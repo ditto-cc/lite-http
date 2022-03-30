@@ -8,85 +8,85 @@
 
 namespace lite_http {
 
-void SelectDispatcher::init() {
-    FD_ZERO(&m_readset);
-    FD_ZERO(&m_writeset);
-    FD_ZERO(&m_exset);
+void SelectDispatcher::Init() {
+  FD_ZERO(&readset_);
+  FD_ZERO(&writeset_);
+  FD_ZERO(&exset_);
 }
 
-void SelectDispatcher::add(Channel* channel) {
-    int fd = channel->fd();
-    LOG_INFO("channel add %d", fd);
-    m_map[fd] = channel;
+void SelectDispatcher::Add(Channel *channel) {
+  int fd = channel->Fd();
+  LOG_INFO("channel Add %d", fd);
+  map_[fd] = channel;
 
-    if (channel->readable())
-        FD_SET(fd, &m_readset);
-    if (channel->writable())
-        FD_SET(fd, &m_writeset);
+  if (channel->Readable())
+    FD_SET(fd, &readset_);
+  if (channel->Writable())
+    FD_SET(fd, &writeset_);
 }
 
-void SelectDispatcher::update(Channel* channel) {
-    if (m_map.count(channel->fd()) == 0) {
-        add(channel);
-    } else {
-        int fd = channel->fd();
-        LOG_INFO("channel update %d", fd);
-        if (channel->readable())
-            FD_SET(fd, &m_readset);
-        else
-            FD_CLR(fd, &m_readset);
+void SelectDispatcher::Update(Channel *channel) {
+  if (map_.count(channel->Fd()) == 0) {
+    Add(channel);
+  } else {
+    int fd = channel->Fd();
+    LOG_INFO("channel Update %d", fd);
+    if (channel->Readable())
+      FD_SET(fd, &readset_);
+    else
+      FD_CLR(fd, &readset_);
 
-        if (channel->writable())
-            FD_SET(fd, &m_writeset);
-        else
-            FD_CLR(fd, &m_writeset);
-    }
+    if (channel->Writable())
+      FD_SET(fd, &writeset_);
+    else
+      FD_CLR(fd, &writeset_);
+  }
 }
 
-void SelectDispatcher::del(Channel* channel) {
-    assert(channel->is_none());
-    int fd = channel->fd();
-    FD_CLR(fd, &m_writeset);
-    FD_CLR(fd, &m_readset);
-    FD_CLR(fd, &m_exset);
-    LOG_INFO("channel del %d", fd);
-    m_map.erase(fd);
+void SelectDispatcher::Del(Channel *channel) {
+  assert(channel->IsNone());
+  int fd = channel->Fd();
+  FD_CLR(fd, &writeset_);
+  FD_CLR(fd, &readset_);
+  FD_CLR(fd, &exset_);
+  LOG_INFO("channel Del %d", fd);
+  map_.erase(fd);
 }
 
-void SelectDispatcher::dispatch(struct timeval* timeval, std::vector<Channel*>& channels) {
-    if (m_map.empty()) {
-        LOG_WARN("no fd to select.");
-        return;
-    }
-    
-    m_readmask = m_readset;
-    m_writemask = m_writeset;
-    m_exmask = m_exset;
-    LOG_INFO("max fd = %d, start select.", m_map.rbegin()->first);
-    if (select(m_map.rbegin()->first + 1, &m_readmask, &m_writemask, &m_exmask, timeval) < 0) {
-        LOG_WARN("select error.");
-        return;
-    }
+void SelectDispatcher::Dispatch(struct timeval *timeval, std::vector<Channel *> &channels) {
+  if (map_.empty()) {
+    LOG_WARN("no Fd to select.");
+    return;
+  }
 
-    for (auto it = m_map.begin(); it != m_map.end(); ++it) {
-        int fd = it->first;
-        Channel* ch = it->second;
-        assert(ch->fd() == fd);
-        int revent = EVENT_NONE;
-        if (FD_ISSET(fd, &m_readmask))
-            revent |= EVENT_READ;
+  readmask_ = readset_;
+  writemask_ = writeset_;
+  exmask_ = exset_;
+  LOG_INFO("max Fd = %d, Start select.", map_.rbegin()->first);
+  if (select(map_.rbegin()->first + 1, &readmask_, &writemask_, &exmask_, timeval) < 0) {
+    LOG_WARN("select error.");
+    return;
+  }
 
-        if (FD_ISSET(fd, &m_writemask))
-            revent |= EVENT_WRITE;
-        ch->set_revent(revent);
-        if (revent == EVENT_NONE) continue;
-        channels.push_back(ch);
-    }
+  for (auto it = map_.begin(); it != map_.end(); ++it) {
+    int fd = it->first;
+    Channel *ch = it->second;
+    assert(ch->Fd() == fd);
+    int revent = kEventNone;
+    if (FD_ISSET(fd, &readmask_))
+      revent |= kEventRead;
+
+    if (FD_ISSET(fd, &writemask_))
+      revent |= kEventWrite;
+    ch->SetRevent(revent);
+    if (revent == kEventNone) continue;
+    channels.push_back(ch);
+  }
 }
 
-void SelectDispatcher::clear() {
-    m_map.clear();
-    init();
+void SelectDispatcher::Clear() {
+  map_.clear();
+  Init();
 }
 
 } // namespace

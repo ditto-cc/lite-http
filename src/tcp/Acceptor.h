@@ -1,46 +1,47 @@
 
-#ifndef _TCPACCEPTOR_H
-#define _TCPACCEPTOR_H
+#ifndef _ACCEPTOR_H
+#define _ACCEPTOR_H
 
 #include "core/EventLoop.h"
 #include "socket/INetAddress.h"
 #include "socket/Socket.h"
-#include "util/nocopyable.h"
+#include "util/Nocopyable.h"
 
 namespace lite_http {
 
-class Acceptor : private nocopyable {
-public:
-    Acceptor(EventLoop* loop,
-             const INetAddress& listen_addr,
-             bool is_blocking, bool reuse_port = true) 
-        : m_event_loop(loop),
-        m_server(MakeSocket(AF_INET, SOCK_STREAM, is_blocking)),
-        m_accept_ch(loop, m_server.fd()), 
-        m_listening(false) {
-        m_server.bind(listen_addr);
-        m_server.set_reuse_addr(true);
-        m_server.set_reuse_port(reuse_port);
-        m_accept_ch.set_read_callback(std::bind(&Acceptor::handle_read, this));
-    }
+class Acceptor : private Nocopyable {
+ public:
+  Acceptor(
+      EventLoop *loop,
+      const INetAddress &listen_addr,
+      bool is_blocking, bool reuse_port = true)
+      : loop_(loop),
+        server_(MakeSocket(AF_INET, SOCK_STREAM, is_blocking)),
+        accept_ch_(loop, server_.Fd()),
+        listening_(false) {
+    server_.Bind(listen_addr);
+    server_.SetReuseAddr(true);
+    server_.SetReusePort(reuse_port);
+    accept_ch_.SetReadCallback(std::bind(&Acceptor::HandleRead, this));
+  }
 
-    ~Acceptor() = default;
+  ~Acceptor() = default;
 
-    typedef std::function<void(int, const INetAddress&)> NewConnCallback;
+  typedef std::function<void(int, const INetAddress &)> NewConnCallback;
 
-    void listen();
-    bool listening() const { return m_listening; }
-    void set_new_conn_cb(NewConnCallback cb) { new_conn_cb = std::move(cb); }
-private:
-    void handle_read();
-private:
-    EventLoop* m_event_loop;
-    Socket m_server;
-    Channel m_accept_ch;
-    bool m_listening;
+  void Listen();
+  bool Listening() const { return listening_; }
+  void SetNewConnCb(NewConnCallback cb) { conn_callback_ = std::move(cb); }
 
-    NewConnCallback new_conn_cb;
+ private:
+  EventLoop *loop_;
+  Socket server_;
+  Channel accept_ch_;
+  bool listening_;
+  NewConnCallback conn_callback_;
+
+  void HandleRead();
 };
-}
+} // namespace
 
-#endif //LITE_HTTP_TCPACCEPTOR_H
+#endif //_ACCEPTOR_H

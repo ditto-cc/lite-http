@@ -11,42 +11,42 @@
 
 #include "core/Channel.h"
 #include "core/EventDispatcher.h"
-#include "util/nocopyable.h"
+#include "util/Nocopyable.h"
 
 namespace lite_http {
-class EventLoop : nocopyable {
-public:
-    typedef std::function<void()> Functor;
+class EventLoop : Nocopyable {
+ public:
+  typedef std::function<void()> Functor;
 
-    EventLoop(std::string name);
-    ~EventLoop();
+  explicit EventLoop(std::string name);
+  ~EventLoop();
 
-    void run_loop();
-    void quit();
+  void RunLoop();
+  void Quit();
 
-    void run_in_loop(Functor cb);
-    void queue_in_loop(Functor cb);
+  void RunInLoop(Functor cb);
+  void QueueInLoop(Functor cb);
 
-    void add_channel(Channel* ch);
-    void update_channel(Channel* ch);
-    void delete_channel(Channel* ch);
+  void AddChannel(Channel *ch);
+  void UpdateChannel(Channel *ch);
+  void DeleteChannel(Channel *ch);
 
-private:
-    void handle_pending_functors();
-    bool is_in_thread() const { return std::this_thread::get_id() == m_thread_id; }
-    void wakeup();
-    void handle_read();
+ private:
+  void HandlePendingFunctors();
+  bool IsInThread() const { return std::this_thread::get_id() == thread_id_; }
+  void Wakeup();
+  void HandleRead();
 
-private:
-    std::string m_name;
-    bool is_stop {false}, m_loop {false};
-    bool m_calling_pending_functors {false}, m_event_handling {false};
-    std::unique_ptr<EventDispatcher> m_dispatcher;
-    std::vector<Channel*> m_activate_channels;
-    std::vector<Functor> m_pending_functors;
-    std::thread::id m_thread_id;
-    mutable std::mutex m_mtx;
+ private:
+  std::string name_;
+  bool is_stop_{false}, loop_{false};
+  bool calling_pending_functors_ {false}, event_handling_ {false};
+  std::unique_ptr<EventDispatcher> dispatcher_;
+  std::vector<Channel *> activate_channels_;
+  std::vector<Functor> pending_functors_;
+  std::thread::id thread_id_;
+  mutable std::mutex mtx_;
 };
-}
+} // namespace
 
 #endif

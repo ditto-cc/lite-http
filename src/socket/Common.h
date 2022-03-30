@@ -20,31 +20,26 @@
 
 namespace lite_http {
 
-typedef unsigned long long size_t;
+inline uint32_t Host2Network32(uint32_t x);
+inline uint16_t Host2Network16(uint16_t x);
+inline uint32_t Network2Host32(uint32_t x);
+inline uint16_t Network2Host16(uint16_t x);
 
-const long MAX_LINE = 4096;
-const int LISTENQ = 1024;
+inline void MakeNonblocking(int fd);
+inline int MakeSocket(int domain, int type, bool blocking);
 
-uint32_t Host2Network32(uint32_t x);
-uint16_t Host2Network16(uint16_t x);
-uint32_t Network2Host32(uint32_t x);
-uint16_t Network2Host16(uint16_t x);
+inline int DoBind(int fd, const struct sockaddr_in *serv_addr, socklen_t serv_len);
+inline int DoListen(int fd, int backlog);
+inline int DoAccept(int fd, struct sockaddr_in *client);
+inline int DoConnect(int fd, struct sockaddr_in *client, socklen_t client_len);
 
-void make_nonblocking(int fd);
-int MakeSocket(int domain, int type, bool blocking);
+inline ssize_t DoRead(int fd, void *buf, size_t size);
+inline ssize_t DoSend(int connfd, const char *buf, size_t size);
 
-int DoBind(int fd, const struct sockaddr_in* serv_addr, socklen_t serv_len);
-int DoListen(int fd, int backlog);
-int DoAccept(int fd, struct sockaddr_in* client);
-int DoConnect(int fd, struct sockaddr_in* client, socklen_t client_len);
+inline void DoShutdownWrite(int fd);
 
-ssize_t DoRead(int fd, void* buf, size_t size);
-ssize_t DoSend(int connfd, const char* buf, size_t size);
-
-void DoShutdownWrite(int fd);
-
-void sockaddr2c_str(char* buf, size_t len, const struct sockaddr_in* addr);
-std::string Sockaddr2str(const struct sockaddr_in* addr);
+inline void Sockaddr2CStr(char *buf, size_t len, const struct sockaddr_in *addr);
+inline std::string Sockaddr2Str(const struct sockaddr_in *addr);
 
 } // namespace
 

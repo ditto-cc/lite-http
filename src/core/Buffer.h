@@ -11,104 +11,96 @@
 
 namespace lite_http {
 
+static const size_t kInitBufferSize = 255;
 class Buffer {
-public:
-    static const size_t INIT_BUFFER_SIZE = 65535;
-    explicit Buffer(size_t cap = INIT_BUFFER_SIZE)
-        : m_cap(cap),
-        m_data(cap),
-        m_read_idx(0),
-        m_write_idx(0) {}
-    ~Buffer() {}
+ public:
+  explicit Buffer(size_t cap = kInitBufferSize)
+      : cap_(cap),
+        data_(cap),
+        read_idx_(0),
+        write_idx_(0) {}
+  ~Buffer() = default;
 
-    const char* read_ptr() const { return m_data.data() + m_read_idx; }
+  const char *ReadPtr() const { return data_.data() + read_idx_; }
 
-    std::string get_readable_as_str() { return get_readable_as_str(readable_size());}
+  std::string GetReadableAsStr() { return GetReadableAsStr(ReadableSize()); }
 
-    std::string get_readable_as_str(size_t sz) {
-        assert(sz <= readable_size());
-        const char* p = read_ptr();
-        reterive(sz);
-        return std::string(p, p + sz);
+  std::string GetReadableAsStr(size_t sz) {
+    assert(sz <= ReadableSize());
+    const char *p = ReadPtr();
+    Retrieve(sz);
+    return {p, p + sz};
+  }
+
+  size_t Capacity() const { return cap_; }
+  size_t ReadableSize() const { return write_idx_ - read_idx_; }
+  size_t WritableSize() const { return data_.size() - write_idx_; }
+  size_t PrependSize() const { return read_idx_; }
+
+  void Append(const char *data, size_t sz) {
+    EnsureWritable(sz);
+    std::copy(data, data + sz, BeginWrite());
+    HasWritten(sz);
+  }
+
+  ssize_t ReadFromFd(int fd) {
+    char temp[kInitBufferSize];
+    struct iovec vec[2];
+    size_t max_writable = WritableSize();
+    vec[0].iov_base = BeginWrite();
+    vec[0].iov_len = max_writable;
+    vec[1].iov_base = temp;
+    vec[1].iov_len = kInitBufferSize;
+    ssize_t ret = readv(fd, vec, 2);
+
+    if (ret < 0) {
+      return errno;
+    } else if (ret <= max_writable) {
+      write_idx_ += ret;
+    } else {
+      write_idx_ = cap_;
+      Append(temp, ret - max_writable);
     }
+    return ret;
+  }
 
-    size_t capacity() const { return m_cap; }
-    size_t readable_size() const { return m_write_idx - m_read_idx; }
-    size_t writable_size() const { return m_data.size() - m_write_idx; }
-    size_t prepend_size() const { return m_read_idx; }
+  void Retrieve(size_t n) {
+    assert(n <= ReadableSize());
+    if (n < ReadableSize())
+      read_idx_ += n;
+    else
+      read_idx_ = write_idx_ = 0;
+  }
+ private:
+  std::vector<char> data_;
+  size_t cap_, write_idx_, read_idx_;
 
-    void append(const char* data, size_t sz) {
-        ensure_writable(sz);
-        std::copy(data, data + sz, begin_write());
-        has_written(sz);
+  char *Begin() { return &(*data_.begin()); }
+  char *BeginRead() { return Begin() + read_idx_; }
+  char *BeginWrite() { return Begin() + write_idx_; }
+
+  void MakeSpace(size_t sz) {
+    size_t readable = ReadableSize();
+    std::copy(BeginRead(), BeginWrite(), Begin());
+    read_idx_ = 0;
+    write_idx_ = read_idx_ + readable;
+    if (WritableSize() <= sz) {
+      data_.resize(write_idx_ + sz);
     }
+    assert(ReadableSize() == readable);
+  }
 
-    ssize_t write_to_fd(int fd) {
-        ssize_t ret = write(fd, begin_read(), readable_size());
-        if (ret > 0)
-            m_read_idx += ret;
-        return ret;
-    }
+  void EnsureWritable(size_t sz) {
+    if (WritableSize() < sz)
+      MakeSpace(sz);
+    assert(WritableSize() >= sz);
+  }
 
-    ssize_t read_from_fd(int fd) {
-        char temp[INIT_BUFFER_SIZE];
-        struct iovec vec[2];
-        size_t max_writable = writable_size();
-        vec[0].iov_base = begin_write();
-        vec[0].iov_len = max_writable;
-        vec[1].iov_base = temp;
-        vec[1].iov_len = INIT_BUFFER_SIZE;
-        ssize_t ret = readv(fd, vec, 2);
-
-        if (ret < 0) {
-            return errno;
-        } else if (ret <= max_writable) {
-            m_write_idx += ret;
-        } else {
-            m_write_idx = m_cap;
-            append(temp, ret - max_writable);
-        }
-        return ret;
-    }
-
-    void reterive(size_t n) {
-        assert(n <= readable_size());
-        if (n < readable_size())
-            m_read_idx += n;
-        else
-            m_read_idx = m_write_idx = 0;
-    }
-private:
-    std::vector<char> m_data;
-    size_t m_cap { MAX_LINE }, m_write_idx { 0 }, m_read_idx { 0 };
-
-    char* begin() { return &(*m_data.begin()); }
-    char* begin_read() { return begin() + m_read_idx; }
-    char* begin_write() { return begin() + m_write_idx; }
-
-    void make_space(size_t sz) {
-        size_t readable = readable_size();
-        std::copy(begin_read(), begin_write(), begin());
-        m_read_idx = 0;
-        m_write_idx = m_read_idx + readable;
-        if (writable_size() <= sz) {
-            m_data.resize(m_write_idx + sz);
-        }
-        assert(readable_size() == readable);
-    }
-
-    void ensure_writable(size_t sz) {
-        if (writable_size() < sz)
-            make_space(sz);
-        assert(writable_size() >= sz);
-    }
-
-    void has_written(size_t sz) {
-        assert(sz <= writable_size());
-        m_write_idx += sz;
-    }
+  void HasWritten(size_t sz) {
+    assert(sz <= WritableSize());
+    write_idx_ += sz;
+  }
 };
 }
-
 
 #endif

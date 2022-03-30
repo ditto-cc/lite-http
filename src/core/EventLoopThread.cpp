@@ -2,44 +2,42 @@
 #include "core/EventLoop.h"
 #include "core/EventLoopThread.h"
 
-
 namespace lite_http {
 
-EventLoop* EventLoopThread::start() {
-    m_thread = std::thread(&EventLoopThread::thread_func, this);
+EventLoop *EventLoopThread::Start() {
+  thread_ = std::thread(&EventLoopThread::ThreadFunc, this);
 
-    std::unique_lock<std::mutex> lock(m_mtx);
-    while (!m_loop) {
-        m_cv.wait(lock);
-    }
+  std::unique_lock<std::mutex> lock(mtx_);
+  while (!loop_) {
+    cv_.wait(lock);
+  }
 
-    return m_loop;
+  return loop_;
 }
 
 EventLoopThread::~EventLoopThread() {
-    if (m_loop) {
-        m_loop->quit();
-        m_thread.join();
-    }
+  if (loop_) {
+    loop_->Quit();
+    thread_.join();
+  }
 }
 
+void EventLoopThread::ThreadFunc() {
+  EventLoop loop(name_);
 
-void EventLoopThread::thread_func() {
-    EventLoop loop(m_name);
+  if (init_callback_) {
+    init_callback_(&loop);
+  }
 
-    if (m_init_cb) {
-        m_init_cb(&loop);
-    }
+  {
+    std::lock_guard<std::mutex> guard(mtx_);
+    loop_ = &loop;
+    cv_.notify_one();
+  }
 
-    {
-        std::lock_guard<std::mutex> guard(m_mtx);
-        m_loop = &loop;
-        m_cv.notify_one();
-    }
-
-    loop.run_loop();
-    std::lock_guard<std::mutex> guard(m_mtx);
-    m_loop = nullptr;
+  loop.RunLoop();
+  std::lock_guard<std::mutex> guard(mtx_);
+  loop_ = nullptr;
 }
 
 } // namespace

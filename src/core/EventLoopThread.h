@@ -6,34 +6,34 @@
 #include <thread>
 #include <string>
 #include <functional>
-#include "util/nocopyable.h"
+#include "util/Nocopyable.h"
 
 namespace lite_http {
 
 class EventLoop;
 
-class EventLoopThread : private nocopyable {
-public:
-    typedef std::function<void(EventLoop*)> ThreadInitCallback;
-    EventLoopThread(
-        std::string name,
-        ThreadInitCallback cb)
-        : m_loop(nullptr),
-        m_name(std::move(name)),
-        m_init_cb(std::move(cb)) {}
-    ~EventLoopThread();
+class EventLoopThread : private Nocopyable {
+ public:
+  typedef std::function<void(EventLoop *)> ThreadInitCallback;
+  EventLoopThread(
+      std::string name,
+      ThreadInitCallback cb)
+      : loop_(nullptr),
+        name_(std::move(name)),
+        init_callback_(std::move(cb)) {}
+  ~EventLoopThread();
 
-    EventLoop* start();
+  EventLoop *Start();
 
-private:
-    EventLoop* m_loop;
-    ThreadInitCallback m_init_cb;
-    std::string m_name;
-    mutable std::mutex m_mtx;
-    mutable std::condition_variable m_cv;
-    std::thread m_thread;
+ private:
+  EventLoop *loop_;
+  ThreadInitCallback init_callback_;
+  std::string name_;
+  mutable std::mutex mtx_;
+  mutable std::condition_variable cv_;
+  std::thread thread_;
 
-    void thread_func();
+  void ThreadFunc();
 };
 } // namespace
 
