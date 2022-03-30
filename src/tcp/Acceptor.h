@@ -11,14 +11,16 @@ namespace lite_http {
 
 class Acceptor : private nocopyable {
 public:
-    Acceptor(EventLoop* event_loop,
+    Acceptor(EventLoop* loop,
              const INetAddress& listen_addr,
-             bool is_blocking) 
-        : m_event_loop(event_loop),
+             bool is_blocking, bool reuse_port = true) 
+        : m_event_loop(loop),
         m_server(MakeSocket(AF_INET, SOCK_STREAM, is_blocking)),
-        m_accept_ch(event_loop, m_server.fd()), 
+        m_accept_ch(loop, m_server.fd()), 
         m_listening(false) {
         m_server.bind(listen_addr);
+        m_server.set_reuse_addr(true);
+        m_server.set_reuse_port(reuse_port);
         m_accept_ch.set_read_callback(std::bind(&Acceptor::handle_read, this));
     }
 
@@ -28,7 +30,7 @@ public:
 
     void listen();
     bool listening() const { return m_listening; }
-    void set_new_conn_cb(const NewConnCallback& cb) { new_conn_cb = cb; }
+    void set_new_conn_cb(NewConnCallback cb) { new_conn_cb = std::move(cb); }
 private:
     void handle_read();
 private:

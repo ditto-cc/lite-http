@@ -72,12 +72,14 @@ private:
     std::condition_variable m_cv;
     std::mutex m_mtx;
     std::once_flag m_started;
+    bool m_runnning { true };
     static const char *m_log_path;
     static unsigned int m_concurrency;
 
     AsyncLogger() = default;
 
     ~AsyncLogger() {
+        Stop();
         for (auto &th: m_threads) {
             th.join();
         }
@@ -98,6 +100,12 @@ public:
         return logger;
     }
 
+    void Stop() {
+        std::lock_guard<std::mutex> guard(m_mtx);
+        m_runnning = false;
+        m_cv.notify_all();
+    }
+
 private:
     void Start() {
         // start log consumer
@@ -116,30 +124,47 @@ private:
         }
         std::ostream os(sb);
         while (true) {
-            char time_buf[100] = "";
+            Log log;
             {
                 std::unique_lock<std::mutex> lock(m_mtx);
-                m_cv.wait(lock, [this]() { return !m_logs.empty(); });
-                Log& log = m_logs.front();
-                size_t rc = strftime(time_buf, sizeof time_buf, "%D %T", gmtime(&log.ts.tv_sec));
-                snprintf(time_buf + rc, sizeof time_buf - rc, ".%06ld UTC", log.ts.tv_nsec / 1000);
-                std::string buf(time_buf);
-                switch (log.level) {
-                    case INFO_LEVEL:
-                        os << buf + INFO_STR + log.msg << std::endl;
-                        break;
-                    case FATAL_LEVEL:
-                        os << buf + FATAL_STR + log.msg << std::endl;
-                        exit(errno);
-                        break;
-                    default:
-                        os << buf + WARN_STR + log.msg << std::endl;
-                        break;
+                while (m_logs.empty()) {
+                    if (!m_runnning) break;
+                    m_cv.wait(lock);
                 }
+
+                if (!m_runnning) break;
+
+                std::swap(log, m_logs.front());
                 m_logs.pop();
             }
-            os.flush();
+            process_log(os, log);
         }
+
+        std::lock_guard<std::mutex> guard(m_mtx);
+        while (!m_logs.empty()) {
+            process_log(os, m_logs.front());
+            m_logs.pop();
+        }
+    }
+
+    void process_log(std::ostream& os, const Log& log) {
+        char time_buf[100] = "";
+        size_t rc = strftime(time_buf, sizeof time_buf, "%D %T", gmtime(&log.ts.tv_sec));
+        snprintf(time_buf + rc, sizeof time_buf - rc, ".%06ld UTC", log.ts.tv_nsec / 1000);
+        std::string buf(time_buf);
+        switch (log.level) {
+            case INFO_LEVEL:
+                os << buf + INFO_STR + log.msg << std::endl;
+                break;
+            case FATAL_LEVEL:
+                os << buf + FATAL_STR + log.msg << std::endl;
+                exit(errno);
+                break;
+            default:
+                os << buf + WARN_STR + log.msg << std::endl;
+                break;
+        }
+        os.flush();
     }
 };
 

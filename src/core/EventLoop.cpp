@@ -40,6 +40,13 @@ void EventLoop::run_loop() {
     m_loop = false;
 }
 
+void EventLoop::quit() {
+    is_stop = true;
+    // TODO wakeup if not in thread
+    if (!is_in_thread())
+        wakeup();
+}
+
 void EventLoop::handle_pending_functors() {
     m_calling_pending_functors = true;
     std::vector<Functor> functors;
@@ -68,6 +75,16 @@ void EventLoop::queue_in_loop(Functor func) {
         m_pending_functors.push_back(std::move(func));
     }
     // TODO wakeup
+    if (is_in_thread() || m_calling_pending_functors)
+        wakeup();
+}
+
+void EventLoop::wakeup() {
+    // TODO
+}
+
+void EventLoop::handle_read() {
+    // TODO
 }
 
 void EventLoop::add_channel(Channel* ch) {

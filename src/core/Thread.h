@@ -14,26 +14,26 @@
 
 namespace lite_http {
 
-    class ThreadPool : private nocopyable {
-    public:
-        typedef std::function<void()> TaskFunc;
-        explicit ThreadPool(int thread_num);
-        ~ThreadPool();
+class ThreadPool : private nocopyable {
+public:
+    typedef std::function<void()> TaskFunc;
+    explicit ThreadPool(int thread_num);
+    ~ThreadPool();
 
-        void addTask(const TaskFunc &taskFunc);
-        void removeAllThreads();
+    void addTask(TaskFunc taskFunc);
+    void removeAllThreads();
 
-    private:
-        void threadFunc();
+private:
+    void threadFunc();
 
-    private:
-        int m_th_num;
-        bool m_running;
-        std::list<std::function<void()>> m_tasks;
-        std::mutex m_mtx;
-        std::condition_variable m_cv;
-        std::vector<std::shared_ptr<std::thread>> m_threads;
-    };
+private:
+    int m_th_num;
+    bool m_running;
+    std::list<TaskFunc> m_tasks;
+    std::mutex m_mtx;
+    std::condition_variable m_cv;
+    std::vector<std::unique_ptr<std::thread>> m_threads;
+};
 }
 
 #endif

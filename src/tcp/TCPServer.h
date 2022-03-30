@@ -5,8 +5,9 @@
 #include <iostream>
 #include <string>
 
-#include "socket/Socket.h"
 #include "core/EventLoop.h"
+#include "core/EventLoopThreadPool.h"
+#include "socket/Socket.h"
 #include "tcp/TCPConnection.h"
 #include "tcp/Acceptor.h"
 #include "util/nocopyable.h"
@@ -18,10 +19,12 @@ public:
     TCPServer(EventLoop* event_loop,
               const INetAddress& addr,
               const std::string& name,
+              int thread_num = 0,
               bool blocking = true)
-        : m_name(name),
-        m_ip_port(addr.ip_port_str()),
-        m_loop(event_loop), 
+        : m_loop(event_loop), 
+        m_name(name),
+        m_ip_port(std::move(addr.ip_port_str())),
+        m_pools(new EventLoopThreadPool(m_loop, name, thread_num)),
         m_acceptor(new Acceptor(event_loop, addr, blocking)) {
         m_acceptor->set_new_conn_cb(
                 std::bind(&TCPServer::establish_conn, this, std::placeholders::_1, std::placeholders::_2));
@@ -35,6 +38,7 @@ public:
 
 private:
     EventLoop* m_loop;
+    std::unique_ptr<EventLoopThreadPool> m_pools;
     std::unique_ptr<Acceptor> m_acceptor;
     int m_thread_num {1};
     const std::string m_name, m_ip_port;

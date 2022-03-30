@@ -27,7 +27,8 @@ void make_nonblocking(int fd) {
 int MakeSocket(int domain, int type, bool blocking) {
     int fd = socket(domain, type, 0);
     if (fd < 0) {
-        LOG_WARN("create socket error");
+        LOG_FATAL("create socket error");
+        exit(errno);
     }
     if (!blocking) {
         make_nonblocking(fd);

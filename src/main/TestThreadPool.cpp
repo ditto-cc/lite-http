@@ -12,7 +12,7 @@ using namespace lite_http;
 
 int main() {
     {
-        ThreadPool threadPool(2);
+        ThreadPool threadPool(1);
         threadPool.addTask([](){ cout << "No.1 process." << endl; });
         threadPool.addTask([](){ cout << "No.2 process." << endl; });
         threadPool.addTask([](){ cout << "No.3 process." << endl; });
@@ -22,5 +22,6 @@ int main() {
         threadPool.addTask([](){ cout << "No.7 process." << endl; });
         std::this_thread::sleep_for(std::chrono::seconds (1));
     }
+    
     return 0;
 }
